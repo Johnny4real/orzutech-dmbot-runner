@@ -8,6 +8,9 @@ on:
         description: "leave empty for a normal cycle, or --baseline"
         required: false
         default: ""
+permissions:
+  actions: write
+  contents: read
 concurrency:
   group: dmbot
   cancel-in-progress: false
@@ -27,3 +30,10 @@ jobs:
           COMPOSIO_USER_API_KEY: ${{ secrets.COMPOSIO_USER_API_KEY }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: bash data/run.sh ${{ github.event.inputs.mode }}
+      - name: Start the next cycle (self-chain, in case the schedule does not fire)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 110
+          gh workflow run dmbot.yml --repo "${{ github.repository }}" --ref main
