@@ -1,4 +1,4 @@
-name: dmbot
+name: dmbot  # ORZUTECH DM bot timer
 on:
   schedule:
     - cron: "*/5 * * * *"
