@@ -2,6 +2,9 @@ name: dmbot  # ORZUTECH DM bot timer
 on:
   schedule:
     - cron: "*/5 * * * *"
+  push:            # restart signal: the Mac pushes the "kick" file when the cloud chain has stopped
+    branches: [main]
+    paths: ["kick", ".github/workflows/dmbot.yml"]
   workflow_dispatch:
     inputs:
       mode:
@@ -36,4 +39,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           sleep 110
-          gh workflow run dmbot.yml --repo "${{ github.repository }}" --ref main
+          # another cycle already waiting? then the chain is alive - do not start a second one
+          if [ "$(gh run list --repo "${{ github.repository }}" --workflow dmbot.yml --status queued --json databaseId --jq length 2>/dev/null)" -gt 0 ] 2>/dev/null; then echo "next cycle already queued"; exit 0; fi
+          for i in 1 2 3 4 5 6 7 8; do
+            gh workflow run dmbot.yml --repo "${{ github.repository }}" --ref main && exit 0
+            echo "dispatch failed (try $i), retrying in 30 s"; sleep 30
+          done
+          exit 1
