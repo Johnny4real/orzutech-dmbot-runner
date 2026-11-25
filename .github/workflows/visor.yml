@@ -1,0 +1,39 @@
+name: visor  # VISOR Telegram bot (assistant + DM-card presses) - one ~5 h 40 min session per run, then it starts the next run
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["visor-kick"]
+permissions:
+  actions: write
+  contents: read
+concurrency:
+  group: visor
+  cancel-in-progress: false
+jobs:
+  session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/orzutech-dmbot-data
+          ssh-key: ${{ secrets.DATA_REPO_KEY }}
+          path: data
+      - name: Run the bot
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          COMPOSIO_USER_API_KEY: ${{ secrets.COMPOSIO_USER_API_KEY }}
+        run: bash data/tg/run.sh
+      - name: Start the next session
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$(gh run list --repo "${{ github.repository }}" --workflow visor.yml --status queued --json databaseId --jq length 2>/dev/null)" -gt 0 ] 2>/dev/null; then echo "next session already queued"; exit 0; fi
+          for i in 1 2 3 4 5 6 7 8; do
+            gh workflow run visor.yml --repo "${{ github.repository }}" --ref main && exit 0
+            echo "dispatch failed (try $i), retrying in 30 s"; sleep 30
+          done
+          exit 1
