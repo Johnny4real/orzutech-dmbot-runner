@@ -44,6 +44,7 @@ jobs:
         env:
           STORYBOT_TOKEN: ${{ secrets.STORYBOT_TOKEN }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          COMPOSIO_USER_API_KEY: ${{ secrets.COMPOSIO_USER_API_KEY }}
         run: bash data/storybot/run.sh
       - name: Start the next session
         if: always()
